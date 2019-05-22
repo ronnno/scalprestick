@@ -26,7 +26,8 @@ const port = 4000
 app.use(express.urlencoded());
 
 app.get('/', async (req, res) => {
-    const { ownerId, plainSecret, ticketId } = req.query;
+    const { id, name, plainSecret, ticketId } = req.query;
+    const ownerId = sha256(id+name);
     const secret = sha256(plainSecret);
 
     const status = await checkIn(contractName, employee, Orbs.addressToBytes(ownerId), Orbs.addressToBytes(secret), ticketId);

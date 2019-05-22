@@ -32,13 +32,13 @@
             virtualChainId: 42,
             channel: "orbs",
             prismEndpoint: "https://prism.orbs-test.com",
-            contractName: 'T1558548287282',
-  employee:
-   { publicKey:
-      Orbs.addressToBytes("0x3baC433f29acda64f9009494C912A3Ed3F9d14Fc9d107Eb84CD0Fb37911d1808"),
-     privateKey:
-      Orbs.addressToBytes("0x4270Af01a26b9EB718C2f6734a7738C8F5E00274798C5c1F0d72D3A926BE47AD3BAC433F29acdA64F9009494C912a3Ed3F9d14Fc9D107eB84cd0Fb37911D1808")
-   }
+            contractName: 'T1558556927670',
+            employee:
+                { publicKey:
+                        Orbs.addressToBytes("0x6B9b4469B337edECB748325a5bB6603557b9eFcfEA71eD5B878C01E3Faf2Ba2d"),
+                    privateKey:
+                        Orbs.addressToBytes("0x42E4Bde88BB88f08c245829D11c663F07C322F36d8098293C11b9d66AE29bFd26b9B4469b337edeCb748325A5Bb6603557B9eFcFeA71ed5B878c01E3FAF2bA2d")
+                }
         };
 
         window.app = new App(Orbs, params, getSender());
@@ -70,7 +70,7 @@
                 <fieldset>
                     <input type="text" id="id_number" rows="10" placeholder="ID number"/>
                     <input type="text" id="name" rows="10" placeholder="Name"/>
-                    <input type="text" id="one_time_secret" rows="10" enable=false placeholder="Secret"/>
+                    <input type="text" id="one_time_secret" rows="10" disabled placeholder="Secret"/>
                     <input type="button" onclick="window.app.submitForm();" value="BUY! BUY! BUY!">
                 </fieldset>
             </form>
