@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="http://cdn.rawgit.com/milligram/milligram/master/dist/milligram.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha256/0.9.0/sha256.min.js"></script>
     <script src="./node_modules/orbs-client-sdk/dist/orbs-client-sdk.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.core.js"></script>
     <!-- <script src="./index.js"></script> -->
     <script src="./app.js"></script>
     <script>
@@ -28,14 +29,15 @@
         // Local settings
         const params = {
             endpoint: "http://localhost:8080",
-            virtualChainId: 42,
-            contractName: "T1558530912314",
+            virtualChainId: 42,            
             channel: "orbs",
             prismEndpoint: "https://prism.orbs-test.com",
-            employee: {
-                publicKey: Orbs.bytesToAddress(""),
-                privateKey: Orbs.addressToBytes("")
-            }
+            contractName: 'T1558532368934',
+  employee:
+   { publicKey:
+      Orbs.addressToBytes("0x93d61d7669Ba86dbB1cF2758b7fA2596b73378047d4c701350A032feFFE4c5B7"),
+     privateKey:
+      Orbs.addressToBytes("0x3bD93C8b856Ab86A7042725fA0FC215d7B26E288208D9Da7AFd19926CC6a582393D61D7669BA86dBb1cf2758B7FA2596B73378047D4C701350a032FEFFE4c5B7") }
         };
 
         window.app = new App(Orbs, params, getSender());

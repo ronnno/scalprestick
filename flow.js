@@ -53,20 +53,25 @@ async function checkIn(contractName, patron, ticketId) {
     console.log("deployed contract", contractName);
 
     const employee = Orbs.createAccount();
-    console.log(Orbs.bytesToAddress(employee.publicKey));
-    console.log(Orbs.bytesToAddress(employee.privateKey));
+    console.log({
+        contractName: contractName,
+        employee: {
+            publicKey: `Orbs.addressToBytes("${Orbs.bytesToAddress(employee.publicKey)}")`,
+            privateKey: `Orbs.addressToBytes("${Orbs.bytesToAddress(employee.privateKey)}")`,
+        }
+    });
     await addEmployee(contractName, owner, employee);
 
     const patron = Orbs.createAccount();
     const secret = new Uint8Array(0, [])
-    const ticketId = await buyTicket(contractName, employee, patron, secret);
+    const ticket = JSON.parse(await buyTicket(contractName, employee, patron, secret));
 
-    console.log("GOT A TICKET", ticketId)
+    console.log("GOT A TICKET", ticket)
 
-    const status = await checkIn(contractName, patron, ticketId);
+    const status = await checkIn(contractName, patron, ticket.ID);
 
     console.log(status);
 
-    const error = await checkIn(contractName, patron, ticketId);
+    const error = await checkIn(contractName, patron, ticket.ID);
     console.log(error);
 })();

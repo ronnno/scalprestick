@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/json"
 	"github.com/orbs-network/orbs-contract-sdk/go/sdk/v1/address"
 	"strconv"
 
@@ -14,6 +15,7 @@ var PUBLIC = sdk.Export(totalSupply, addEmployee, buyTicket, checkIn)
 var SYSTEM = sdk.Export(_init)
 
 type Ticket struct {
+	ID uint32
 	OwnerId   []byte
 	Secret []byte
 	Status    string
@@ -44,14 +46,16 @@ func ticketIdKey(id uint32) string {
 }
 
 func saveTicket(id string, t Ticket) {
-	state.WriteBytes([]byte(id + "_id"), t.OwnerId)
+	state.WriteUint32([]byte(id + "_id"), t.ID)
+	state.WriteBytes([]byte(id + "_ownerId"), t.OwnerId)
 	state.WriteBytes([]byte(id + "_secret"), t.Secret)
 	state.WriteString([]byte(id + "_status"), t.Status)
 }
 
 func getTicket(id string) Ticket {
 	return Ticket{
-		OwnerId: state.ReadBytes([]byte(id + "_id")),
+		ID: state.ReadUint32([]byte(id + "_id")),
+		OwnerId: state.ReadBytes([]byte(id + "_ownerId")),
 		Secret: state.ReadBytes([]byte(id + "_secret")),
 		Status:  state.ReadString([]byte(id + "_status")),
 	}
@@ -71,11 +75,12 @@ func checkIn(id uint32) string {
 
 	saveTicket(key, ticket)
 
-	return ticket.Status
+	data, _ := json.Marshal(ticket)
+	return string(data)
 }
 
 
-func buyTicket(ownerId []byte, secret []byte) uint32 {
+func buyTicket(ownerId []byte, secret []byte) string {
 	if !bytes.Equal(state.ReadBytes([]byte("EMPLOYEE")), address.GetSignerAddress()) {
 		panic("not allowed!")
 	}
@@ -85,13 +90,16 @@ func buyTicket(ownerId []byte, secret []byte) uint32 {
 
 	decreaseTotalSupplyBy(1)
 
-	saveTicket(ticketIdKey(ticketId), Ticket{
+	ticket := Ticket{
+		ID: ticketId,
 		OwnerId: ownerId,
 		Secret: secret,
 		Status:  "purchased",
-	})
+	}
+	saveTicket(ticketIdKey(ticketId), ticket)
 
-	return ticketId
+	data, _ := json.Marshal(ticket)
+	return string(data)
 }
 
 func addEmployee(employee []byte) {

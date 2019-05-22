@@ -2,20 +2,16 @@
 class App {
     constructor(Orbs, { endpoint, prismEndpoint, virtualChainId, contractName, channel, employee }, { publicKey, privateKey, address }) {
         this.channel = channel;
-        // this.conversation = new Conversation(Orbs, {
-        //     endpoint,
-        //     virtualChainId,
-        //     contractName
-        // }, {
-        //     publicKey,
-        //     privateKey
-        // });
 
+        this.publicKey = publicKey;
+        this.privateKey = privateKey;
         this.address = address;
         this.virtualChainId = virtualChainId;
         this.prismEndpoint = prismEndpoint;
         this.contractName = contractName;
         this.employee = employee;
+
+        this.tickets = [];
     }
 
     async send(text) {
@@ -28,35 +24,56 @@ class App {
     
         console.log(result);
     
-        const tickedId = result.outputArguments[0].value
+        const ticket = JSON.parse(result.outputArguments[0].value)
+        this.tickets.push(ticket);
+        this.renderTickets();
 
-        console.log(tickedId);
         // const messageId = await this.conversation.sendMessageToChannel(this.channel, text);
-        console.log(`got a ticket! ${tickedId}`);
+        console.log(`got a ticket!`, ticket);
         return false;
     }
 
-    async run() {
-        this.conversation.scroll(this.channel, 1, (messages) => {
-            for (const m of messages) {
-                const container = document.getElementById("messages");
-                const date = (new Date(m.Timestamp/1000000).toISOString()).substr(11, 12);
-                const author = m.Author.substr(0, 6);
-                const prismLink = `${this.prismEndpoint}/vchains/${this.virtualChainId}/block/${m.BlockHeight}`;
-                const row = document.createElement("div");
-                row.classList = ["row"];
-                row.innerHTML = `<div class="column column-20"><a href="${prismLink}" target="_blank">${date}</a> <strong title="0x${m.Author}">${author}</strong>:</div><div class="column column-90">${m.Message}</div>`;
+    async renderTickets() {
+        const container = document.getElementById("tickets");
+        container.innerHTML = "";
 
-                container.appendChild(row, container.childNodes[0]);
-            }
-        });
+        for (const t of this.tickets) {                
+            const row = document.createElement("div");
+            row.classList = ["row"];
+
+            let button = t.Status == "purchased" ? `<button onclick='javascript:window.app.checkInButton(${t.ID})'>Check in!</button>` : ""
+
+            row.innerHTML = `<div class="column column-20">${t.ID}</div><div class="column column-20"><strong>${t.Status}</strong></div>
+            <div class="column column-20">${button}</div>`;
+
+            container.appendChild(row, container.childNodes[0]);
+        }
+    }
+
+    async checkInButton(ticketId) {
+        const client = new Orbs.Client("http://localhost:8080", 42, Orbs.NetworkType.NETWORK_TYPE_TEST_NET);
+        const [ tx, txid ] = client.createTransaction(this.publicKey, this.privateKey, this.contractName, "checkIn", [Orbs.argUint32(ticketId)]);
+
+        const result = await client.sendTransaction(tx);
+
+        try {
+            const ticket = JSON.parse(result.outputArguments[0].value);
+            const t = _.find(this.tickets, { ID: ticket.ID });
+            _.assignIn(t, ticket);
+
+            this.renderTickets();
+        } catch (e) {
+            console.log(e)
+            alert(result.outputArguments[0].value);
+        }
+
+        return false;
     }
 
     submitForm() {
         const text = document.getElementById('message_content');
         this.send(text.value);
         text.value = "";
-        window.scrollTo(0,document.body.scrollHeight);
         return false;
     }
 
