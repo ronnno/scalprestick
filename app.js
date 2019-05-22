@@ -16,6 +16,12 @@ class App {
         this.secretStore = {};
     }
 
+    generateSecret() {
+        document.getElementById('one_time_secret').value = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
     async buy(id, name, plainSecret) {
         const ownerId = Orbs.addressToBytes(sha256(id+name));
         const secret = Orbs.addressToBytes(sha256(plainSecret));
@@ -40,6 +46,7 @@ class App {
 
             // const messageId = await this.conversation.sendMessageToChannel(this.channel, text);
             console.log(`got a ticket!`, ticket);
+            this.generateSecret()
         } catch (e) {
             alert(result.outputArguments[0].value)
         }
@@ -55,7 +62,7 @@ class App {
             const row = document.createElement("div");
             row.classList = ["row"];
             
-            let button = t.Status == "purchased" ? `<button onclick='javascript:window.app.checkInButton(${t.ID})'>Check in!</button>` : ""
+            let button = t.Status == "purchased" ? `<button onclick='javascript:window.app.checkInButton(${t.ID})'>Check in!</button><button onclick='javascript:window.app.checkInButton(${t.ID}, Orbs.addressToBytes("FFFDD43F"))'>wrong secret!</button>` : ""
 
             row.innerHTML = `<div class="column column-20">${t.ID}</div><div class="column column-20"><strong>${t.Status}</strong></div>
             <div class="column column-20">${button}</div>`;
@@ -64,10 +71,10 @@ class App {
         }
     }
 
-    async checkInButton(ticketId) {
+    async checkInButton(ticketId, secretOverride) {
         
         const ownerId = this.secretStore[ticketId].ownerId;
-        const secret = this.secretStore[ticketId].secret;
+        const secret = secretOverride || this.secretStore[ticketId].secret;
 
         const client = new Orbs.Client("http://localhost:8080", 42, Orbs.NetworkType.NETWORK_TYPE_TEST_NET);
         const [ tx, txid ] = client.createTransaction(this.employee.publicKey, this.employee.privateKey, this.contractName, "checkIn", [Orbs.argBytes(ownerId), Orbs.argBytes(secret), Orbs.argUint32(ticketId)]);
@@ -89,9 +96,10 @@ class App {
     }
 
     submitForm() {
-        const id = document.getElementById('message_content');
-        const name = document.getElementById('message_content');
-        const plainSecret = document.getElementById('message_content');
+        const id = document.getElementById('id_number');
+        const name = document.getElementById('name');
+        const plainSecret = document.getElementById('one_time_secret');
+
         this.buy(id.value, name.value, plainSecret.value);
 
         text.value = "";
@@ -108,7 +116,6 @@ class App {
 
     showInfo() {
         this.setElementValue("address", this.address);
-        this.setElementValue("channel", this.channel);
         this.setElementValue("contract_name", this.contractName);
     }
 

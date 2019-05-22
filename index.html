@@ -43,7 +43,6 @@
         };
 
         window.app = new App(Orbs, params, getSender());
-        window.app.run();
     </script>
     <style>
         #messages {
@@ -53,7 +52,7 @@
     </style>
 </head>
 
-<body onload="window.app.showInfo()">
+<body onload="window.app.showInfo();window.app.generateSecret()">
     <main class="wrapper">
         <nav class="navigation">
             <section class="container">
@@ -70,7 +69,9 @@
             <br/>
             <form>
                 <fieldset>
-                    <textarea id="message_content" rows="10" placeholder="ID number and name go here" onkeydown="window.app.submitOnEnter(event)"></textarea>
+                    <input type="text" id="id_number" rows="10" placeholder="ID number"/>
+                    <input type="text" id="name" rows="10" placeholder="Name"/>
+                    <input type="text" id="one_time_secret" rows="10" enable=false placeholder="Secret"/>
                     <input type="button" onclick="window.app.submitForm();" value="BUY! BUY! BUY!">
                 </fieldset>
             </form>
