@@ -1,0 +1,10 @@
+{
+  "name": "tickets",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Kirill Maksimov <kirill@orbs.com>",
+  "license": "MIT",
+  "dependencies": {
+    "orbs-client-sdk": "^0.0.6"
+  }
+}
