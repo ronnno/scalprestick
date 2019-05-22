@@ -1,4 +1,4 @@
-const Orbs = require("orbs-client-sdk")
+const Orbs = require("orbs-client-sdk");
 
 async function deploy(owner, code) {
     const contractName = `T${new Date().getTime()}`;
@@ -44,6 +44,17 @@ async function checkIn(contractName, employee, ownerId, secret, ticketId) {
 }
 
 
+function writeDeploymentFiles(contractName, employee) {
+    const dc = "\n" +
+        "const contractName = '" + contractName + "';\n" +
+        "const employeePublicKey = Orbs.addressToBytes(\"" + Orbs.bytesToAddress(employee.publicKey) + "\");\n" +
+        "const employeePrivateKey = Orbs.addressToBytes(\"" + Orbs.bytesToAddress(employee.privateKey) + "\");";
+    require("fs").writeFileSync("./dc.js", dc);
+
+    const gate_sh = `#!/usr/bin/env bash\nnode gate.js ${contractName} ${Orbs.bytesToAddress(employee.publicKey)} ${Orbs.bytesToAddress(employee.privateKey)}`
+    require("fs").writeFileSync("./gate.sh", gate_sh, {mode: "700"});
+}
+
 (async () => {
     const code = require("fs").readFileSync("./contract.go");
 
@@ -61,6 +72,8 @@ async function checkIn(contractName, employee, ownerId, secret, ticketId) {
         }
     });
     await addEmployee(contractName, owner, employee);
+
+    writeDeploymentFiles(contractName, employee);
 
     var enc = new TextEncoder(); // always utf-8
 

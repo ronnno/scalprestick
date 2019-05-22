@@ -10,6 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.core.js"></script>
     <!-- <script src="./index.js"></script> -->
     <script src="./app.js"></script>
+    <script src="./dc.js" onerror="alert('Cannot find contract deployment file \'dc.js\'. Please run \'node flow.js\' to generate it')"></script>
     <script>
         function getSender() {
             if (!localStorage.getItem("sender_public_key")) {
@@ -32,13 +33,11 @@
             virtualChainId: 42,
             channel: "orbs",
             prismEndpoint: "https://prism.orbs-test.com",
-            contractName: 'T1558556927670',
-            employee:
-                { publicKey:
-                        Orbs.addressToBytes("0x6B9b4469B337edECB748325a5bB6603557b9eFcfEA71eD5B878C01E3Faf2Ba2d"),
-                    privateKey:
-                        Orbs.addressToBytes("0x42E4Bde88BB88f08c245829D11c663F07C322F36d8098293C11b9d66AE29bFd26b9B4469b337edeCb748325A5Bb6603557B9eFcFeA71ed5B878c01E3FAF2bA2d")
-                }
+            contractName: contractName,
+            employee: {
+                publicKey: employeePublicKey,
+                privateKey: employeePrivateKey
+            }
         };
 
         window.app = new App(Orbs, params, getSender());
