@@ -12,35 +12,49 @@ class App {
         this.employee = employee;
 
         this.tickets = [];
+
+        this.secretStore = {};
     }
 
-    async send(text) {
-        const secret = Orbs.addressToBytes(sha256(text));
+    async buy(id, name, plainSecret) {
+        const ownerId = Orbs.addressToBytes(sha256(id+name));
+        const secret = Orbs.addressToBytes(sha256(plainSecret));
+
 
         const client = new Orbs.Client("http://localhost:8080", 42, Orbs.NetworkType.NETWORK_TYPE_TEST_NET);
-        const [ tx, txid ] = client.createTransaction(this.employee.publicKey, this.employee.privateKey, this.contractName, "buyTicket", [Orbs.argBytes(Orbs.addressToBytes(this.address)), Orbs.argBytes(secret)]);
-    
-        const result = await client.sendTransaction(tx);
-    
-        console.log(result);
-    
-        const ticket = JSON.parse(result.outputArguments[0].value)
-        this.tickets.push(ticket);
-        this.renderTickets();
+        const [ tx, txid ] = client.createTransaction(this.employee.publicKey, this.employee.privateKey, this.contractName, "buyTicket", [Orbs.argBytes(ownerId), Orbs.argBytes(secret)]);
 
-        // const messageId = await this.conversation.sendMessageToChannel(this.channel, text);
-        console.log(`got a ticket!`, ticket);
+        const result = await client.sendTransaction(tx);
+
+        console.log(result);
+
+        try {
+            const ticket = JSON.parse(result.outputArguments[0].value);
+            this.secretStore[ticket.ID] = {
+                secret: secret,
+                ownerId: ownerId
+            };
+
+            this.tickets.push(ticket);
+            this.renderTickets();
+
+            // const messageId = await this.conversation.sendMessageToChannel(this.channel, text);
+            console.log(`got a ticket!`, ticket);
+        } catch (e) {
+            alert(result.outputArguments[0].value)
+        }
+
         return false;
     }
 
     async renderTickets() {
         const container = document.getElementById("tickets");
         container.innerHTML = "";
-
+        
         for (const t of this.tickets) {                
             const row = document.createElement("div");
             row.classList = ["row"];
-
+            
             let button = t.Status == "purchased" ? `<button onclick='javascript:window.app.checkInButton(${t.ID})'>Check in!</button>` : ""
 
             row.innerHTML = `<div class="column column-20">${t.ID}</div><div class="column column-20"><strong>${t.Status}</strong></div>
@@ -51,8 +65,12 @@ class App {
     }
 
     async checkInButton(ticketId) {
+        
+        const ownerId = this.secretStore[ticketId].ownerId;
+        const secret = this.secretStore[ticketId].secret;
+
         const client = new Orbs.Client("http://localhost:8080", 42, Orbs.NetworkType.NETWORK_TYPE_TEST_NET);
-        const [ tx, txid ] = client.createTransaction(this.publicKey, this.privateKey, this.contractName, "checkIn", [Orbs.argUint32(ticketId)]);
+        const [ tx, txid ] = client.createTransaction(this.employee.publicKey, this.employee.privateKey, this.contractName, "checkIn", [Orbs.argBytes(ownerId), Orbs.argBytes(secret), Orbs.argUint32(ticketId)]);
 
         const result = await client.sendTransaction(tx);
 
@@ -71,8 +89,11 @@ class App {
     }
 
     submitForm() {
-        const text = document.getElementById('message_content');
-        this.send(text.value);
+        const id = document.getElementById('message_content');
+        const name = document.getElementById('message_content');
+        const plainSecret = document.getElementById('message_content');
+        this.buy(id.value, name.value, plainSecret.value);
+
         text.value = "";
         return false;
     }

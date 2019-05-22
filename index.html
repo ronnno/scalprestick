@@ -29,15 +29,17 @@
         // Local settings
         const params = {
             endpoint: "http://localhost:8080",
-            virtualChainId: 42,            
+            virtualChainId: 42,
             channel: "orbs",
             prismEndpoint: "https://prism.orbs-test.com",
-            contractName: 'T1558532368934',
-  employee:
-   { publicKey:
-      Orbs.addressToBytes("0x93d61d7669Ba86dbB1cF2758b7fA2596b73378047d4c701350A032feFFE4c5B7"),
-     privateKey:
-      Orbs.addressToBytes("0x3bD93C8b856Ab86A7042725fA0FC215d7B26E288208D9Da7AFd19926CC6a582393D61D7669BA86dBb1cf2758B7FA2596B73378047D4C701350a032FEFFE4c5B7") }
+
+            contractName: 'T1558544482460',
+            employee:
+                { publicKey:
+                        Orbs.addressToBytes("0xffa6013F82391ACa7E91156Ac7748aAb57F96Ff9ADd11086A0C958334e48924B"),
+                    privateKey:
+                        Orbs.addressToBytes("0x38E21B57be98486408b4F4B858d38682a66213964eaFe9F96e88a20071a90762FfA6013F82391aca7e91156aC7748Aab57F96Ff9Add11086a0C958334e48924b")
+                }
         };
 
         window.app = new App(Orbs, params, getSender());

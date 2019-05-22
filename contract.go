@@ -23,6 +23,7 @@ type Ticket struct {
 }
 
 const TOTAL_SUPPLY = 10000
+const MAX_TICKETS_PER_ID = 5
 
 func _init() {
 	state.WriteUint32(totalSupplyKey(), TOTAL_SUPPLY)
@@ -61,17 +62,30 @@ func getTicket(id string) Ticket {
 	}
 }
 
-func checkIn(id uint32) string {
+func checkIn(ownerId []byte, secret []byte, id uint32) string {
 	key := ticketIdKey(id)
 	ticket := getTicket(key)
 
-	if bytes.Equal(address.GetSignerAddress(), ticket.OwnerId) {
-		if ticket.Status == "purchased" {
-			ticket.Status = "checked in"
-		} else {
-			panic("did you just try to cheat my blockchain?")
-		}
+	if !bytes.Equal(state.ReadBytes([]byte("EMPLOYEE")), address.GetSignerAddress()) {
+		panic("not authorized!")
 	}
+
+	if !bytes.Equal(ownerId, ticket.OwnerId) {
+		// log invalid access to ticket
+		panic("invalid owner!")
+	}
+
+	if !bytes.Equal(secret, ticket.Secret) {
+		// log invalid access to ticket
+		panic("invalid secret!")
+	}
+
+	if ticket.Status != "purchased" {
+		// log invalid access to ticket
+		panic("invalid ticket status!")
+	}
+
+	ticket.Status = "checked in"
 
 	saveTicket(key, ticket)
 
@@ -79,10 +93,13 @@ func checkIn(id uint32) string {
 	return string(data)
 }
 
-
 func buyTicket(ownerId []byte, secret []byte) string {
 	if !bytes.Equal(state.ReadBytes([]byte("EMPLOYEE")), address.GetSignerAddress()) {
-		panic("not allowed!")
+		panic("not authorized!")
+	}
+
+	if state.ReadUint32(getOwnerCounterStateKey(ownerId)) >= MAX_TICKETS_PER_ID {
+		panic("max allowance per owner reached!")
 	}
 
 	supply := totalSupply()
@@ -97,9 +114,21 @@ func buyTicket(ownerId []byte, secret []byte) string {
 		Status:  "purchased",
 	}
 	saveTicket(ticketIdKey(ticketId), ticket)
+	incrementUserCounter(ownerId)
 
 	data, _ := json.Marshal(ticket)
 	return string(data)
+}
+
+func incrementUserCounter(ownerId []byte) {
+	stateKeyOwnerCounter := getOwnerCounterStateKey(ownerId)
+	counter := state.ReadUint32(stateKeyOwnerCounter)
+	counter++
+	state.WriteUint32(stateKeyOwnerCounter, counter)
+}
+
+func getOwnerCounterStateKey(ownerId []byte) []byte {
+	return append([]byte("OWNER_COUNTER_"), ownerId...)
 }
 
 func addEmployee(employee []byte) {

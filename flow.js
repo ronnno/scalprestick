@@ -21,9 +21,9 @@ async function addEmployee(contractName, owner, employee) {
     console.log(result);
 }
 
-async function buyTicket(contractName, employee, patron, secret) {
+async function buyTicket(contractName, employee, ownerId, secret) {
     const client = new Orbs.Client("http://localhost:8080", 42, Orbs.NetworkType.NETWORK_TYPE_TEST_NET);
-    const [ tx, txid ] = client.createTransaction(employee.publicKey, employee.privateKey, contractName, "buyTicket", [Orbs.argBytes(Orbs.addressToBytes(patron.address)), Orbs.argBytes(secret)]);
+    const [ tx, txid ] = client.createTransaction(employee.publicKey, employee.privateKey, contractName, "buyTicket", [Orbs.argBytes(ownerId), Orbs.argBytes(secret)]);
 
     const result = await client.sendTransaction(tx);
 
@@ -32,9 +32,9 @@ async function buyTicket(contractName, employee, patron, secret) {
     return result.outputArguments[0].value
 }
 
-async function checkIn(contractName, patron, ticketId) {
+async function checkIn(contractName, employee, ownerId, secret, ticketId) {
     const client = new Orbs.Client("http://localhost:8080", 42, Orbs.NetworkType.NETWORK_TYPE_TEST_NET);
-    const [ tx, txid ] = client.createTransaction(patron.publicKey, patron.privateKey, contractName, "checkIn", [Orbs.argUint32(ticketId)]);
+    const [ tx, txid ] = client.createTransaction(employee.publicKey, employee.privateKey, contractName, "checkIn", [Orbs.argBytes(ownerId), Orbs.argBytes(secret), Orbs.argUint32(ticketId)]);
 
     const result = await client.sendTransaction(tx);
 
@@ -62,16 +62,18 @@ async function checkIn(contractName, patron, ticketId) {
     });
     await addEmployee(contractName, owner, employee);
 
-    const patron = Orbs.createAccount();
-    const secret = new Uint8Array(0, [])
-    const ticket = JSON.parse(await buyTicket(contractName, employee, patron, secret));
+    var enc = new TextEncoder(); // always utf-8
 
-    console.log("GOT A TICKET", ticket)
+    const ownerId = enc.encode("id, name");
+    const secret = enc.encode("One time secret");
+    const ticket = JSON.parse(await buyTicket(contractName, employee, ownerId, secret));
 
-    const status = await checkIn(contractName, patron, ticket.ID);
+    console.log("GOT A TICKET", ticket);
+
+    const status = await checkIn(contractName, employee, ownerId, secret, ticket.ID);
 
     console.log(status);
 
-    const error = await checkIn(contractName, patron, ticket.ID);
+    const error = await checkIn(contractName, employee, ownerId, secret, ticket.ID);
     console.log(error);
 })();
