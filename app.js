@@ -22,13 +22,13 @@ class App {
             return v.toString(16);
         });
     }
-    async buy(id, name, plainSecret) {
+    async buy(id, name, secret) {
         const ownerId = Orbs.addressToBytes(sha256(id+name));
-        const secret = Orbs.addressToBytes(sha256(plainSecret));
+        const secretHash = Orbs.addressToBytes(sha256(secret));
 
 
         const client = new Orbs.Client("http://localhost:8080", 42, Orbs.NetworkType.NETWORK_TYPE_TEST_NET);
-        const [ tx, txid ] = client.createTransaction(this.employee.publicKey, this.employee.privateKey, this.contractName, "buyTicket", [Orbs.argBytes(ownerId), Orbs.argBytes(secret)]);
+        const [ tx, txid ] = client.createTransaction(this.employee.publicKey, this.employee.privateKey, this.contractName, "buyTicket", [Orbs.argBytes(ownerId), Orbs.argBytes(secretHash)]);
 
         const result = await client.sendTransaction(tx);
 
@@ -39,9 +39,7 @@ class App {
             this.secretStore[ticket.ID] = {
                 id: id,
                 name: name,
-                plainSecret: plainSecret,
-                secret: secret,
-                ownerId: ownerId
+                secret: secret
             };
 
             this.tickets.push(ticket);
@@ -69,8 +67,8 @@ class App {
 
             const id = this.secretStore[t.ID].id;
             const name = this.secretStore[t.ID].name;
-            const plainSecret = this.secretStore[t.ID].plainSecret;
-            let checkInLink = t.Status == "purchased" ? `<a href='http://localhost:4000/?ticketId=${t.ID}&id=${id}&name=${name}&plainSecret=${plainSecret}' target=_blank>Check in via link</a>` : "";
+            const secret = this.secretStore[t.ID].secret;
+            let checkInLink = t.Status == "purchased" ? `<a href='http://localhost:4000/?ticketId=${t.ID}&id=${id}&name=${name}&secret=${secret}' target=_blank>Check in via link</a>` : "";
 
             row.innerHTML = `<div class="column column-20">${t.ID}</div><div class="column column-20"><strong>${t.Status}</strong></div>
             <div class="column column-20">${button}</div>
@@ -81,9 +79,9 @@ class App {
     }
 
     async checkInButton(ticketId, secretOverride) {
-        
-        const ownerId = Orbs.addressToBytes(sha256(this.secretStore[ticketId].id + this.secretStore[ticketId].name));
-        const secret = Orbs.addressToBytes(sha256(secretOverride || this.secretStore[ticketId].plainSecret));
+        const elem = this.secretStore[ticketId];
+        const ownerId = Orbs.addressToBytes(sha256(elem.id + elem.name));
+        const secret = Orbs.addressToBytes(sha256(secretOverride || elem.secret));
 
         const client = new Orbs.Client("http://localhost:8080", 42, Orbs.NetworkType.NETWORK_TYPE_TEST_NET);
         const [ tx, txid ] = client.createTransaction(this.employee.publicKey, this.employee.privateKey, this.contractName, "checkIn", [Orbs.argBytes(ownerId), Orbs.argBytes(secret), Orbs.argUint32(ticketId)]);
@@ -104,22 +102,13 @@ class App {
         return false;
     }
 
-    submitForm() {
-        const id = document.getElementById('id_number');
-        const name = document.getElementById('name');
-        const plainSecret = document.getElementById('one_time_secret');
+    async submitForm() {
+        const idInput = document.getElementById('id_number');
+        const nameInput = document.getElementById('name');
+        const secretInput = document.getElementById('one_time_secret');
 
-        this.buy(id.value, name.value, plainSecret.value);
+        await this.buy(idInput.value, nameInput.value, secretInput.value);
 
-        text.value = "";
-        return false;
-    }
-
-    submitOnEnter(e) {
-        if(e.which == 10 || e.which == 13) {
-            e.preventDefault();
-            this.submitForm();
-        }
         return false;
     }
 
