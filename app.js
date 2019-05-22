@@ -38,7 +38,8 @@ class App {
             const ticket = JSON.parse(result.outputArguments[0].value);
             this.secretStore[ticket.ID] = {
                 secret: secret,
-                ownerId: ownerId
+                ownerId: ownerId,
+                plainSecret: plainSecret,
             };
 
             this.tickets.push(ticket);
@@ -64,8 +65,13 @@ class App {
             
             let button = t.Status == "purchased" ? `<button onclick='javascript:window.app.checkInButton(${t.ID})'>Check in!</button><button onclick='javascript:window.app.checkInButton(${t.ID}, Orbs.addressToBytes("FFFDD43F"))'>wrong secret!</button>` : ""
 
+            const ownerId = Orbs.bytesToAddress(this.secretStore[t.ID].ownerId);
+            const plainSecret = this.secretStore[t.ID].plainSecret;
+            let checkInLink = t.Status == "purchased" ? `<a href='http://localhost:4000/?ticketId=${t.ID}&ownerId=${ownerId}&plainSecret=${plainSecret}' target=_blank>Check in via link</a>` : "";
+
             row.innerHTML = `<div class="column column-20">${t.ID}</div><div class="column column-20"><strong>${t.Status}</strong></div>
-            <div class="column column-20">${button}</div>`;
+            <div class="column column-20">${button}</div>
+            <div class="column column-20">${checkInLink}</div>`;
 
             container.appendChild(row, container.childNodes[0]);
         }
