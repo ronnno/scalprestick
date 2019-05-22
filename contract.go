@@ -24,7 +24,7 @@ const TOTAL_SUPPLY = 10000
 
 func _init() {
 	state.WriteUint32(totalSupplyKey(), TOTAL_SUPPLY)
-	state.WriteBytes([]byte("OWNER"), address.GetCallerAddress())
+	state.WriteBytes([]byte("OWNER"), address.GetSignerAddress())
 }
 
 func decreaseTotalSupplyBy(difference uint32) {
@@ -61,7 +61,7 @@ func checkIn(id uint32) string {
 	key := ticketIdKey(id)
 	ticket := getTicket(key)
 
-	if bytes.Equal(address.GetCallerAddress(), ticket.OwnerId) {
+	if bytes.Equal(address.GetSignerAddress(), ticket.OwnerId) {
 		if ticket.Status == "purchased" {
 			ticket.Status = "checked in"
 		} else {
@@ -76,7 +76,7 @@ func checkIn(id uint32) string {
 
 
 func buyTicket(ownerId []byte, secret []byte) uint32 {
-	if !bytes.Equal(state.ReadBytes([]byte("EMPLOYEE")), address.GetCallerAddress()) {
+	if !bytes.Equal(state.ReadBytes([]byte("EMPLOYEE")), address.GetSignerAddress()) {
 		panic("not allowed!")
 	}
 
@@ -95,9 +95,9 @@ func buyTicket(ownerId []byte, secret []byte) uint32 {
 }
 
 func addEmployee(employee []byte) {
-	//if !bytes.Equal(state.ReadBytes([]byte("OWNER")), address.GetCallerAddress()) {
-	//	panic("not allowed!")
-	//}
+	if !bytes.Equal(state.ReadBytes([]byte("OWNER")), address.GetSignerAddress()) {
+		panic("not allowed!")
+	}
 
 	state.WriteBytes([]byte("EMPLOYEE"), employee)
 }
