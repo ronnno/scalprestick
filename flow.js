@@ -53,6 +53,8 @@ async function checkIn(contractName, patron, ticketId) {
     console.log("deployed contract", contractName);
 
     const employee = Orbs.createAccount();
+    console.log(Orbs.bytesToAddress(employee.publicKey));
+    console.log(Orbs.bytesToAddress(employee.privateKey));
     await addEmployee(contractName, owner, employee);
 
     const patron = Orbs.createAccount();
