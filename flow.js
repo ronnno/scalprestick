@@ -30,9 +30,9 @@ async function setAuditContract(contractName, owner, auditContractName) {
     console.log(result);
 }
 
-async function buyTicket(contractName, employee, ownerId, secret) {
+async function buyTicket(contractName, employee, ownerId, secret, ownerOrbsAddr) {
     const client = new Orbs.Client("http://localhost:8080", 42, Orbs.NetworkType.NETWORK_TYPE_TEST_NET);
-    const [ tx, txid ] = client.createTransaction(employee.publicKey, employee.privateKey, contractName, "buyTicket", [Orbs.argBytes(ownerId), Orbs.argBytes(secret)]);
+    const [ tx, txid ] = client.createTransaction(employee.publicKey, employee.privateKey, contractName, "buyTicket", [Orbs.argBytes(ownerId), Orbs.argBytes(secret), Orbs.argAddress(ownerOrbsAddr)]);
 
     const result = await client.sendTransaction(tx);
 
@@ -53,14 +53,15 @@ async function checkIn(contractName, employee, ownerId, secret, ticketId, confir
 }
 
 
-function writeDeploymentFiles(contractName, employee) {
+function writeDeploymentFiles(contractName, employee, auditContractName) {
     const dc = "\n" +
         "const contractName = '" + contractName + "';\n" +
         "const employeePublicKey = Orbs.addressToBytes(\"" + Orbs.bytesToAddress(employee.publicKey) + "\");\n" +
-        "const employeePrivateKey = Orbs.addressToBytes(\"" + Orbs.bytesToAddress(employee.privateKey) + "\");";
+        "const employeePrivateKey = Orbs.addressToBytes(\"" + Orbs.bytesToAddress(employee.privateKey) + "\");\n" +
+        "const auditContractName = '" + auditContractName + "';";
     require("fs").writeFileSync("./dc.js", dc);
 
-    const gate_sh = `#!/usr/bin/env bash\nnode gate.js ${contractName} ${Orbs.bytesToAddress(employee.publicKey)} ${Orbs.bytesToAddress(employee.privateKey)}`
+    const gate_sh = `#!/usr/bin/env bash\nnode gate.js ${contractName} ${Orbs.bytesToAddress(employee.publicKey)} ${Orbs.bytesToAddress(employee.privateKey)} ${auditContractName}`
     require("fs").writeFileSync("./gate.sh", gate_sh, {mode: "700"});
 }
 
@@ -71,6 +72,7 @@ function writeDeploymentFiles(contractName, employee) {
     const audit = require("./audit/flow");
 
     const owner = Orbs.createAccount();
+    const user = Orbs.createAccount();
     const contractName = await deploy(owner, code);
     const auditContractName = await audit.deploy(owner, auditCode);
 
@@ -78,26 +80,19 @@ function writeDeploymentFiles(contractName, employee) {
     console.log("deployed contract", auditContractName);
 
     const employee = Orbs.createAccount();
-    console.log({
-        contractName: contractName,
-        employee: {
-            publicKey: `Orbs.addressToBytes("${Orbs.bytesToAddress(employee.publicKey)}")`,
-            privateKey: `Orbs.addressToBytes("${Orbs.bytesToAddress(employee.privateKey)}")`,
-        }
-    });
     await addEmployee(contractName, owner, employee);
 
     await setAuditContract(contractName, owner, auditContractName);
 
     console.log("ALL EVENTS", await audit.getEvents(auditContractName, employee))
 
-    writeDeploymentFiles(contractName, employee);
+    writeDeploymentFiles(contractName, employee, auditContractName);
 
     var enc = new TextEncoder(); // always utf-8
 
     const ownerId = enc.encode("id, name");
     const secret = enc.encode("One time secret");
-    const ticket = JSON.parse(await buyTicket(contractName, employee, ownerId, secret));
+    const ticket = JSON.parse(await buyTicket(contractName, employee, ownerId, secret, user.address));
 
     console.log("GOT A TICKET", ticket);
 

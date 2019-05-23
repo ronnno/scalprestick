@@ -49,13 +49,18 @@ func setAuditContract(auditContractName string) {
 	}
 	key := strconv.FormatUint(uint64(LOG_ID), 10)
 	state.WriteString([]byte(key), auditContractName)
+
+	log(LoggingEvent{
+		EventType: "register contract",
+		OwnerId:   address.GetSignerAddress(),
+	})
 }
 
 func log(auditEvent interface{}) {
 	key := strconv.FormatUint(uint64(LOG_ID), 10)
 	auditContractName := state.ReadString([]byte(key))
 	data, _ := json.Marshal(auditEvent)
-	service.CallMethod(auditContractName, "log", data)
+	service.CallMethod(auditContractName, "addEvent", string(data))
 }
 
 //func addFeedback(ticketID uint32, ownerID []byte ) {
