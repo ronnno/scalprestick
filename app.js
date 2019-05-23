@@ -1,11 +1,16 @@
 
 class App {
-    constructor(Orbs, { endpoint, prismEndpoint, virtualChainId, contractName, channel, employee }, { publicKey, privateKey, address }) {
+    constructor(Orbs, { endpoint, prismEndpoint, virtualChainId, contractName, channel, employee }, { publicKey, privateKey, address }, { friendPublicKey, friendPrivateKey, friendAddress }) {
         this.channel = channel;
 
         this.publicKey = publicKey;
         this.privateKey = privateKey;
         this.address = address;
+        this.friendPublicKey = friendPublicKey;
+        this.friendPrivateKey = friendPrivateKey;
+        this.friendAddress = friendAddress;
+        this.friendId = "12344123435644";
+        this.friendName = "Hogeg";
         this.virtualChainId = virtualChainId;
         this.prismEndpoint = prismEndpoint;
         this.contractName = contractName;
@@ -57,34 +62,40 @@ class App {
 
     async renderTickets() {
         const container = document.getElementById("tickets");
-        container.innerHTML = "";
-        
+        container.innerHTML = "<div class=\"row\" style=\"margin-bottom: 10px;background: azure;\"><div class=\"column column-10\">Ticket ID</div>" +
+            "<div class=\"column column-20\">Ticket Status</div> <div class=\"column column-20\">Check in </div> " +
+            "<div class=\"column column-20\">Wrong info check in</div> <div class=\"column column-20\"> Allow a friend</div><div class=\"column column-20\"> Friend check in</div>" ;
+
         for (const t of this.tickets) {                
             const row = document.createElement("div");
             row.classList = ["row"];
             
-            let button = t.Status == "purchased" ? `<button onclick='javascript:window.app.checkInButton(${t.ID})'>Check in!</button><button onclick='javascript:window.app.checkInButton(${t.ID}, "wrong secret")'>wrong secret!</button>` : ""
+            let buttonAddFriend = `<button onclick='javascript:window.app.allowFriendButton(${t.ID})'>Add Friend!</button>`;
 
             const id = this.secretStore[t.ID].id;
             const name = this.secretStore[t.ID].name;
             const secret = this.secretStore[t.ID].secret;
-            let checkInLink = t.Status == "purchased" ? `<a href='http://localhost:4000/checkin?ticketId=${t.ID}&id=${id}&name=${name}&secret=${secret}' target=_blank>Check in via link</a>` : "";
+            const wrongSecret = "Wrong secret"
+            let checkInLink = t.Status == "purchased" ? `<a href='http://localhost:4000/checkin?ticketId=${t.ID}&id=${id}&name=${name}&secret=${secret}' target=_blank>Check in link</a>` : "";
+            let checkInViaLinkWrongInfo = t.Status == "purchased" ? `<a href='http://localhost:4000/checkin?ticketId=${t.ID}&id=${id}&name=${name}&secret=${wrongSecret}' target=_blank>Check in link</a>` : "";
+            let checkAsFriend = t.Status == "purchased" ? `<a href='http://localhost:4000/checkin?ticketId=${t.ID}&id=${this.friendId}&name=${this.friendName}&secret=${secret}' target=_blank>Check in </a>` : "";
 
-            row.innerHTML = `<div class="column column-20">${t.ID}</div><div class="column column-20"><strong>${t.Status}</strong></div>
-            <div class="column column-20">${button}</div>
-            <div class="column column-20">${checkInLink}</div>`;
-
+            row.innerHTML = `<div class="column column-10">${t.ID}</div><div class="column column-20"><strong>${t.Status}</strong></div>
+            <div class="column column-20">${checkInLink}</div>
+            <div class="column column-20">${checkInViaLinkWrongInfo}</div>
+            <div class="column column-20">${buttonAddFriend}</div>
+            <div class="column column-20">${checkAsFriend}</div>`
             container.appendChild(row, container.childNodes[0]);
         }
     }
 
-    async checkInButton(ticketId, secretOverride) {
+    async allowFriendButton(ticketId, secretOverride) {
         const elem = this.secretStore[ticketId];
-        const ownerId = Orbs.addressToBytes(sha256(elem.id + elem.name));
+        const friendId = Orbs.addressToBytes(sha256(this.friendId + this.friendName));
         const secret = Orbs.addressToBytes(sha256(secretOverride || elem.secret));
 
         const client = new Orbs.Client("http://localhost:8080", 42, Orbs.NetworkType.NETWORK_TYPE_TEST_NET);
-        const [ tx, txid ] = client.createTransaction(this.employee.publicKey, this.employee.privateKey, this.contractName, "checkIn", [Orbs.argBytes(ownerId), Orbs.argBytes(secret), Orbs.argUint32(ticketId), Orbs.argString("CONFIRMED")]);
+        const [ tx, txid ] = client.createTransaction(this.publicKey, this.privateKey, this.contractName, "addOwner", [Orbs.argUint32(ticketId), Orbs.argBytes(friendId), Orbs.argBytes(this.friendAddress)]);
 
         const result = await client.sendTransaction(tx);
 
