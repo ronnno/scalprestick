@@ -27,6 +27,7 @@ type Ticket struct {
 
 const TOTAL_SUPPLY = 10000
 const MAX_TICKETS_PER_ID = 5
+const MAX_OWNERS_PER_TICKET = 5
 const LOG_ID = 11
 
 type LoggingEvent struct {
@@ -67,8 +68,11 @@ func addOwner(ticketID uint32, newOwnerID []byte, newOwnerOrbsAddress []byte) st
 	ticket := getTicket(ticketKey)
 	ownersOrbsAddresses := ticket.OwnersOrbsAddresses
 	authorized := false
-
 	callerAddress := address.GetSignerAddress()
+
+	if len(ownersOrbsAddresses) > MAX_OWNERS_PER_TICKET {
+		panic("reached maximum number of owners!")
+	}
 
 	for i := range ownersOrbsAddresses {
 		ownerOrbsAddress := ownersOrbsAddresses[i]
