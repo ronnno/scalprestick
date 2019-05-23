@@ -14,6 +14,7 @@ async function checkIn(contractName, employee, ownerId, secret, ticketId, confir
 
 console.log(process.argv)
 const contractName = process.argv[2];
+const auditContractName = process.argv[5];
 const employee = {
     publicKey: Orbs.addressToBytes(process.argv[3]),
     privateKey: Orbs.addressToBytes(process.argv[4]),
@@ -58,6 +59,13 @@ app.get('/rejected', async (req, res) => {
 
     const status = await checkIn(contractName, employee, Orbs.addressToBytes(ownerId), Orbs.addressToBytes(secretHash), ticketId, "BAD_ID");
     res.send(status);
+});
+
+app.get('/events', async (req, res) => {
+    const getEvents = require("./audit/flow").getEvents;
+    const events = await getEvents(auditContractName, employee);
+
+    res.send(events);
 });
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`))

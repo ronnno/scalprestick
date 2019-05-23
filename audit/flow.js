@@ -51,5 +51,9 @@ if (!module.parent) {
         const allEvents = await getEvents(contractName, owner);
         console.log("All events", allEvents)
     })();
+} else {
+    module.exports = {
+        addEvent, getEvents
+    }
 }
 
