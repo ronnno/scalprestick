@@ -25,11 +25,25 @@ const port = 4000
 
 app.use(express.urlencoded());
 
-app.get('/', async (req, res) => {
-    const { ownerId, plainSecret, ticketId } = req.query;
-    const secret = sha256(plainSecret);
+const sessions = {}
+let nextSessionId = 0
 
-    const status = await checkIn(contractName, employee, Orbs.addressToBytes(ownerId), Orbs.addressToBytes(secret), ticketId);
+app.get('/checkin', async (req, res) => {
+    sessions[""+nextSessionId] = req.query;
+    res.send(`<a href='/confirmed?session=${nextSessionId}'>Confirm ID</a>`)
+    nextSessionId++;
+});
+
+
+
+app.get('/confirmed', async (req, res) => {
+    console.log(req.query);
+    console.log(sessions);
+    const { id, name, secret, ticketId } = sessions[req.query.session];
+    const ownerId = sha256(id+name);
+    const secretHash = sha256(secret);
+
+    const status = await checkIn(contractName, employee, Orbs.addressToBytes(ownerId), Orbs.addressToBytes(secretHash), ticketId);
     res.send(status);
 });
 

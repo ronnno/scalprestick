@@ -10,6 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.core.js"></script>
     <!-- <script src="./index.js"></script> -->
     <script src="./app.js"></script>
+    <script src="./dc.js" onerror="alert('Cannot find contract deployment file \'dc.js\'. Please run \'node flow.js\' to generate it')"></script>
     <script>
         function getSender() {
             if (!localStorage.getItem("sender_public_key")) {
@@ -32,13 +33,11 @@
             virtualChainId: 42,
             channel: "orbs",
             prismEndpoint: "https://prism.orbs-test.com",
-            contractName: 'T1558548287282',
-  employee:
-   { publicKey:
-      Orbs.addressToBytes("0x3baC433f29acda64f9009494C912A3Ed3F9d14Fc9d107Eb84CD0Fb37911d1808"),
-     privateKey:
-      Orbs.addressToBytes("0x4270Af01a26b9EB718C2f6734a7738C8F5E00274798C5c1F0d72D3A926BE47AD3BAC433F29acdA64F9009494C912a3Ed3F9d14Fc9D107eB84cd0Fb37911D1808")
-   }
+            contractName: contractName,
+            employee: {
+                publicKey: employeePublicKey,
+                privateKey: employeePrivateKey
+            }
         };
 
         window.app = new App(Orbs, params, getSender());
@@ -70,7 +69,7 @@
                 <fieldset>
                     <input type="text" id="id_number" rows="10" placeholder="ID number"/>
                     <input type="text" id="name" rows="10" placeholder="Name"/>
-                    <input type="text" id="one_time_secret" rows="10" enable=false placeholder="Secret"/>
+                    <input type="text" id="one_time_secret" rows="10" disabled placeholder="Secret"/>
                     <input type="button" onclick="window.app.submitForm();" value="BUY! BUY! BUY!">
                 </fieldset>
             </form>
