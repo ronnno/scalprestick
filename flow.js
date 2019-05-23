@@ -32,9 +32,9 @@ async function buyTicket(contractName, employee, ownerId, secret) {
     return result.outputArguments[0].value
 }
 
-async function checkIn(contractName, employee, ownerId, secret, ticketId) {
+async function checkIn(contractName, employee, ownerId, secret, ticketId, confirmation) {
     const client = new Orbs.Client("http://localhost:8080", 42, Orbs.NetworkType.NETWORK_TYPE_TEST_NET);
-    const [ tx, txid ] = client.createTransaction(employee.publicKey, employee.privateKey, contractName, "checkIn", [Orbs.argBytes(ownerId), Orbs.argBytes(secret), Orbs.argUint32(ticketId)]);
+    const [ tx, txid ] = client.createTransaction(employee.publicKey, employee.privateKey, contractName, "checkIn", [Orbs.argBytes(ownerId), Orbs.argBytes(secret), Orbs.argUint32(ticketId), Orbs.argString(confirmation)]);
 
     const result = await client.sendTransaction(tx);
 
@@ -83,10 +83,10 @@ function writeDeploymentFiles(contractName, employee) {
 
     console.log("GOT A TICKET", ticket);
 
-    const status = await checkIn(contractName, employee, ownerId, secret, ticket.ID);
+    const status = await checkIn(contractName, employee, ownerId, secret, ticket.ID, "CONFIRMED");
 
     console.log(status);
 
-    const error = await checkIn(contractName, employee, ownerId, secret, ticket.ID);
+    const error = await checkIn(contractName, employee, ownerId, secret, ticket.ID, "CONFIRMED");
     console.log(error);
 })();

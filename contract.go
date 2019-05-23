@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/json"
-	"github.com/orbs-network/orbs-contract-sdk/go/sdk/v1/address"
-	"strconv"
-
+	"fmt"
 	"github.com/orbs-network/orbs-contract-sdk/go/sdk/v1"
+	"github.com/orbs-network/orbs-contract-sdk/go/sdk/v1/address"
 	"github.com/orbs-network/orbs-contract-sdk/go/sdk/v1/state"
+	"strconv"
 )
 
 var PUBLIC = sdk.Export(totalSupply, addEmployee, buyTicket, checkIn)
@@ -62,9 +62,13 @@ func getTicket(id string) Ticket {
 	}
 }
 
-func checkIn(ownerId []byte, secret []byte, id uint32) string {
+func checkIn(ownerId []byte, secret []byte, id uint32, confirmation string) string {
 	key := ticketIdKey(id)
 	ticket := getTicket(key)
+
+	if !("CONFIRMED" == confirmation) {
+		panic(fmt.Sprintf("not confirmed: %s", confirmation))
+	}
 
 	if !bytes.Equal(state.ReadBytes([]byte("EMPLOYEE")), address.GetSignerAddress()) {
 		panic("not authorized!")
