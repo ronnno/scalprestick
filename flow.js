@@ -53,14 +53,15 @@ async function checkIn(contractName, employee, ownerId, secret, ticketId, confir
 }
 
 
-function writeDeploymentFiles(contractName, employee) {
+function writeDeploymentFiles(contractName, employee, auditContractName) {
     const dc = "\n" +
         "const contractName = '" + contractName + "';\n" +
         "const employeePublicKey = Orbs.addressToBytes(\"" + Orbs.bytesToAddress(employee.publicKey) + "\");\n" +
-        "const employeePrivateKey = Orbs.addressToBytes(\"" + Orbs.bytesToAddress(employee.privateKey) + "\");";
+        "const employeePrivateKey = Orbs.addressToBytes(\"" + Orbs.bytesToAddress(employee.privateKey) + "\");\n" +
+        "const auditContractName = '" + auditContractName + "';";
     require("fs").writeFileSync("./dc.js", dc);
 
-    const gate_sh = `#!/usr/bin/env bash\nnode gate.js ${contractName} ${Orbs.bytesToAddress(employee.publicKey)} ${Orbs.bytesToAddress(employee.privateKey)}`
+    const gate_sh = `#!/usr/bin/env bash\nnode gate.js ${contractName} ${Orbs.bytesToAddress(employee.publicKey)} ${Orbs.bytesToAddress(employee.privateKey)} ${auditContractName}`
     require("fs").writeFileSync("./gate.sh", gate_sh, {mode: "700"});
 }
 
@@ -79,20 +80,13 @@ function writeDeploymentFiles(contractName, employee) {
     console.log("deployed contract", auditContractName);
 
     const employee = Orbs.createAccount();
-    console.log({
-        contractName: contractName,
-        employee: {
-            publicKey: `Orbs.addressToBytes("${Orbs.bytesToAddress(employee.publicKey)}")`,
-            privateKey: `Orbs.addressToBytes("${Orbs.bytesToAddress(employee.privateKey)}")`,
-        }
-    });
     await addEmployee(contractName, owner, employee);
 
     await setAuditContract(contractName, owner, auditContractName);
 
     console.log("ALL EVENTS", await audit.getEvents(auditContractName, employee))
 
-    writeDeploymentFiles(contractName, employee);
+    writeDeploymentFiles(contractName, employee, auditContractName);
 
     var enc = new TextEncoder(); // always utf-8
 
