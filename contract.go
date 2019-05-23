@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/orbs-network/orbs-contract-sdk/go/sdk/v1"
-	"github.com/orbs-network/orbs-contract-sdk/go/sdk/v1/service"
 	"github.com/orbs-network/orbs-contract-sdk/go/sdk/v1/address"
+	"github.com/orbs-network/orbs-contract-sdk/go/sdk/v1/service"
 	"github.com/orbs-network/orbs-contract-sdk/go/sdk/v1/state"
 	"strconv"
 )
@@ -16,20 +16,18 @@ var PUBLIC = sdk.Export(totalSupply, addEmployee, buyTicket, checkIn, setAuditCo
 var SYSTEM = sdk.Export(_init)
 
 type Ticket struct {
-	ID uint32
-	OwnersIDs   [][]byte
+	ID                  uint32
+	OwnersIDs           [][]byte
 	OwnersOrbsAddresses [][]byte
-	Secret []byte
-	Status    string
-	Timestamp uint64
-	Feedback uint32
+	Secret              []byte
+	Status              string
+	Timestamp           uint64
+	Feedback            uint32
 }
-
 
 const TOTAL_SUPPLY = 10000
 const MAX_TICKETS_PER_ID = 5
 const LOG_ID = 11
-
 
 type LoggingEvent struct {
 	CallerContractAddress []byte
@@ -44,7 +42,7 @@ func _init() {
 	state.WriteBytes([]byte("OWNER"), address.GetSignerAddress())
 }
 
-func setAuditContract(auditContractName string ) {
+func setAuditContract(auditContractName string) {
 	if !bytes.Equal(state.ReadBytes([]byte("OWNER")), address.GetSignerAddress()) {
 		panic("not allowed!")
 	}
@@ -52,8 +50,7 @@ func setAuditContract(auditContractName string ) {
 	state.WriteString([]byte(key), auditContractName)
 }
 
-
-func log(auditEvent interface{} ) {
+func log(auditEvent interface{}) {
 	key := strconv.FormatUint(uint64(LOG_ID), 10)
 	auditContractName := state.ReadString([]byte(key))
 	data, _ := json.Marshal(auditEvent)
@@ -92,16 +89,11 @@ func addOwner(ticketID uint32, newOwnerID []byte, newOwnerOrbsAddress []byte) st
 	return string(data)
 }
 
-
-
-
-
-
 func decreaseTotalSupplyBy(difference uint32) {
-	state.WriteUint32(totalSupplyKey(), totalSupply() - difference)
+	state.WriteUint32(totalSupplyKey(), totalSupply()-difference)
 }
 
-func totalSupplyKey()[]byte {
+func totalSupplyKey() []byte {
 	return []byte("total_supply")
 }
 
@@ -114,23 +106,41 @@ func ticketIdKey(id uint32) string {
 }
 
 func saveTicket(id string, t Ticket) {
-	state.WriteUint32([]byte(id + "_id"), t.ID)
-	state.WriteBytes([]byte(id + "_ownerId"), t.OwnerId)
-	state.WriteBytes([]byte(id + "_secret"), t.Secret)
-	state.WriteString([]byte(id + "_status"), t.Status)
-}
+	state.WriteUint32([]byte(id+"_id"), t.ID)
+	state.WriteBytes([]byte(id+"_secret"), t.Secret)
+	state.WriteString([]byte(id+"_status"), t.Status)
 
-func getTicket(id string) Ticket {
-	return Ticket{
-		ID: state.ReadUint32([]byte(id + "_id")),
-		OwnerId: state.ReadBytes([]byte(id + "_ownerId")),
-		Secret: state.ReadBytes([]byte(id + "_secret")),
-		Status:  state.ReadString([]byte(id + "_status")),
+	state.WriteUint32([]byte(id+"_owner_cert_hash_count"), uint32(len(t.OwnersIDs)))
+	for i, ownerID := range t.OwnersIDs {
+		state.WriteBytes([]byte(fmt.Sprintf(id+"_owner_cert_hash_%d", i)), ownerID)
+	}
+
+	state.WriteUint32([]byte(id+"_owner_orbs_addr_count"), uint32(len(t.OwnersOrbsAddresses)))
+	for i, ownerOrbsAddress := range t.OwnersOrbsAddresses {
+		state.WriteBytes([]byte(fmt.Sprintf(id+"_owner_orbs_addr_%d", i)), ownerOrbsAddress)
 	}
 }
 
+func getTicket(id string) Ticket {
+	result := Ticket{
+		ID:                  state.ReadUint32([]byte(id + "_id")),
+		OwnersIDs:           make([][]byte, state.ReadUint32([]byte(id+"_owner_cert_hash_count"))),
+		Secret:              state.ReadBytes([]byte(id + "_secret")),
+		Status:              state.ReadString([]byte(id + "_status")),
+		OwnersOrbsAddresses: make([][]byte, state.ReadUint32([]byte(id+"_owner_orbs_addr_count"))),
+	}
 
-func checkOwnership(ticketID uint32, ownerID []byte) bool{
+	for i := range result.OwnersIDs {
+		result.OwnersIDs[i] = state.ReadBytes([]byte(fmt.Sprintf(id+"_owner_cert_hash_%d", i)))
+	}
+
+	for i := range result.OwnersOrbsAddresses {
+		result.OwnersOrbsAddresses[i] = state.ReadBytes([]byte(fmt.Sprintf(id+"_owner_orbs_addr_%d", i)))
+	}
+	return result
+}
+
+func checkOwnership(ticketID uint32, ownerID []byte) bool {
 	ticketKey := ticketIdKey(ticketID)
 	ticket := getTicket(ticketKey)
 	ownersIDs := ticket.OwnersIDs
@@ -145,7 +155,6 @@ func checkOwnership(ticketID uint32, ownerID []byte) bool{
 	}
 	return authorized
 }
-
 
 func checkIn(ownerId []byte, secret []byte, id uint32, confirmation string) string {
 	key := ticketIdKey(id)
@@ -181,7 +190,7 @@ func checkIn(ownerId []byte, secret []byte, id uint32, confirmation string) stri
 	return string(data)
 }
 
-func buyTicket(ownerId []byte, hashedSecret []byte, ) string {
+func buyTicket(ownerId []byte, hashedSecret []byte, ownerOrbsAddress []byte) string {
 	if !bytes.Equal(state.ReadBytes([]byte("EMPLOYEE")), address.GetSignerAddress()) {
 		panic("not authorized!")
 	}
@@ -196,17 +205,17 @@ func buyTicket(ownerId []byte, hashedSecret []byte, ) string {
 	decreaseTotalSupplyBy(1)
 
 	ticket := Ticket{
-		ID:                 ticketId,
-		OwnersIDs:          [ownerId],
-		OwnersOrbsAdresses: [],
-		Secret:             hashedSecret,
-		Status:             "purchased",
+		ID:                  ticketId,
+		OwnersIDs:           [][]byte{ownerId},
+		OwnersOrbsAddresses: [][]byte{ownerOrbsAddress},
+		Secret:              hashedSecret,
+		Status:              "purchased",
 	}
 	saveTicket(ticketIdKey(ticketId), ticket)
 	incrementUserCounter(ownerId)
 
 	logEvent := LoggingEvent{
-		OwnerId: ownerId,
+		OwnerId:   ownerId,
 		EventType: "purchase",
 	}
 	log(logEvent)
@@ -214,11 +223,6 @@ func buyTicket(ownerId []byte, hashedSecret []byte, ) string {
 	data, _ := json.Marshal(ticket)
 	return string(data)
 }
-
-
-
-
-
 
 func incrementUserCounter(ownerId []byte) {
 	stateKeyOwnerCounter := getOwnerCounterStateKey(ownerId)
