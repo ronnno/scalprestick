@@ -30,9 +30,9 @@ async function setAuditContract(contractName, owner, auditContractName) {
     console.log(result);
 }
 
-async function buyTicket(contractName, employee, ownerId, secret) {
+async function buyTicket(contractName, employee, ownerId, secret, ownerOrbsAddr) {
     const client = new Orbs.Client("http://localhost:8080", 42, Orbs.NetworkType.NETWORK_TYPE_TEST_NET);
-    const [ tx, txid ] = client.createTransaction(employee.publicKey, employee.privateKey, contractName, "buyTicket", [Orbs.argBytes(ownerId), Orbs.argBytes(secret)]);
+    const [ tx, txid ] = client.createTransaction(employee.publicKey, employee.privateKey, contractName, "buyTicket", [Orbs.argBytes(ownerId), Orbs.argBytes(secret), Orbs.argAddress(ownerOrbsAddr)]);
 
     const result = await client.sendTransaction(tx);
 
@@ -71,6 +71,7 @@ function writeDeploymentFiles(contractName, employee) {
     const audit = require("./audit/flow");
 
     const owner = Orbs.createAccount();
+    const user = Orbs.createAccount();
     const contractName = await deploy(owner, code);
     const auditContractName = await audit.deploy(owner, auditCode);
 
@@ -97,7 +98,7 @@ function writeDeploymentFiles(contractName, employee) {
 
     const ownerId = enc.encode("id, name");
     const secret = enc.encode("One time secret");
-    const ticket = JSON.parse(await buyTicket(contractName, employee, ownerId, secret));
+    const ticket = JSON.parse(await buyTicket(contractName, employee, ownerId, secret, user.address));
 
     console.log("GOT A TICKET", ticket);
 

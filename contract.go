@@ -42,19 +42,25 @@ func _init() {
 	state.WriteBytes([]byte("OWNER"), address.GetSignerAddress())
 }
 
-func setAuditContract(auditContractName string) {
+func setAuditContract(auditContractName string ) {
 	if !bytes.Equal(state.ReadBytes([]byte("OWNER")), address.GetSignerAddress()) {
 		panic("not allowed!")
 	}
 	key := strconv.FormatUint(uint64(LOG_ID), 10)
 	state.WriteString([]byte(key), auditContractName)
+
+	log(LoggingEvent{
+		EventType: "register contract",
+		OwnerId: address.GetSignerAddress(),
+	})
 }
 
-func log(auditEvent interface{}) {
+
+func log(auditEvent interface{} ) {
 	key := strconv.FormatUint(uint64(LOG_ID), 10)
 	auditContractName := state.ReadString([]byte(key))
 	data, _ := json.Marshal(auditEvent)
-	service.CallMethod(auditContractName, "log", data)
+	service.CallMethod(auditContractName, "addEvent", string(data))
 }
 
 //func addFeedback(ticketID uint32, ownerID []byte ) {

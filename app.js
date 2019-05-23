@@ -22,13 +22,13 @@ class App {
             return v.toString(16);
         });
     }
-    async buy(id, name, secret) {
+    async buy(id, name, secret, orbsAddr) {
         const ownerId = Orbs.addressToBytes(sha256(id+name));
         const secretHash = Orbs.addressToBytes(sha256(secret));
 
 
         const client = new Orbs.Client("http://localhost:8080", 42, Orbs.NetworkType.NETWORK_TYPE_TEST_NET);
-        const [ tx, txid ] = client.createTransaction(this.employee.publicKey, this.employee.privateKey, this.contractName, "buyTicket", [Orbs.argBytes(ownerId), Orbs.argBytes(secretHash)]);
+        const [ tx, txid ] = client.createTransaction(this.employee.publicKey, this.employee.privateKey, this.contractName, "buyTicket", [Orbs.argBytes(ownerId), Orbs.argBytes(secretHash), Orbs.argAddress(orbsAddr)]);
 
         const result = await client.sendTransaction(tx);
 
@@ -107,7 +107,7 @@ class App {
         const nameInput = document.getElementById('name');
         const secretInput = document.getElementById('one_time_secret');
 
-        await this.buy(idInput.value, nameInput.value, secretInput.value);
+        await this.buy(idInput.value, nameInput.value, secretInput.value, this.address);
 
         return false;
     }

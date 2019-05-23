@@ -19,21 +19,17 @@ func Test_Init(t *testing.T) {
 func Test_BuyAndCheckIn(t *testing.T) {
 	owner := AnAddress()
 	employee := AnAddress()
-	//patron := AnAddress()
+	patron := AnAddress()
 
 	InServiceScope(nil, owner, func(m Mockery) {
 		_init()
 		addEmployee(employee)
 	})
 
-	var ticketId uint32
-
 	InServiceScope(nil, employee, func(mockery Mockery) {
 		secret := hash([]byte("tz 123, Kirill"))
-		ticketId = buyTicket(employee, secret)
+		_ := buyTicket(employee, secret, patron)
 
-		status := checkIn(ticketId)
-		require.EqualValues(t, "checked in", status)
 	})
 
 	//for _, d := range diffs {
