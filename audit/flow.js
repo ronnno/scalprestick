@@ -53,7 +53,7 @@ if (!module.parent) {
     })();
 } else {
     module.exports = {
-        addEvent, getEvents
+        deploy, addEvent, getEvents
     }
 }
 

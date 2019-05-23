@@ -21,6 +21,15 @@ async function addEmployee(contractName, owner, employee) {
     console.log(result);
 }
 
+async function setAuditContract(contractName, owner, auditContractName) {
+    const client = new Orbs.Client("http://localhost:8080", 42, Orbs.NetworkType.NETWORK_TYPE_TEST_NET);
+    const [ tx, txid ] = client.createTransaction(owner.publicKey, owner.privateKey, contractName, "setAuditContract", [Orbs.argString(auditContractName)]);
+
+    const result = await client.sendTransaction(tx);
+
+    console.log(result);
+}
+
 async function buyTicket(contractName, employee, ownerId, secret) {
     const client = new Orbs.Client("http://localhost:8080", 42, Orbs.NetworkType.NETWORK_TYPE_TEST_NET);
     const [ tx, txid ] = client.createTransaction(employee.publicKey, employee.privateKey, contractName, "buyTicket", [Orbs.argBytes(ownerId), Orbs.argBytes(secret)]);
@@ -57,11 +66,16 @@ function writeDeploymentFiles(contractName, employee) {
 
 (async () => {
     const code = require("fs").readFileSync("./contract.go");
+    const auditCode = require("fs").readFileSync("./audit/contract.go");
+
+    const audit = require("./audit/flow");
 
     const owner = Orbs.createAccount();
     const contractName = await deploy(owner, code);
+    const auditContractName = await audit.deploy(owner, auditCode);
 
     console.log("deployed contract", contractName);
+    console.log("deployed contract", auditContractName);
 
     const employee = Orbs.createAccount();
     console.log({
@@ -73,6 +87,10 @@ function writeDeploymentFiles(contractName, employee) {
     });
     await addEmployee(contractName, owner, employee);
 
+    await setAuditContract(contractName, owner, auditContractName);
+
+    console.log("ALL EVENTS", await audit.getEvents(auditContractName, employee))
+
     writeDeploymentFiles(contractName, employee);
 
     var enc = new TextEncoder(); // always utf-8
@@ -83,9 +101,13 @@ function writeDeploymentFiles(contractName, employee) {
 
     console.log("GOT A TICKET", ticket);
 
+    console.log("ALL EVENTS", await audit.getEvents(auditContractName, employee))
+
     const status = await checkIn(contractName, employee, ownerId, secret, ticket.ID, "CONFIRMED");
 
     console.log(status);
+
+    console.log("ALL EVENTS", await audit.getEvents(auditContractName, employee))
 
     const error = await checkIn(contractName, employee, ownerId, secret, ticket.ID, "CONFIRMED");
     console.log(error);
