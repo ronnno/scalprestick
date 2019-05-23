@@ -1,4 +1,4 @@
-const Orbs = require("orbs-client-sdk")
+const Orbs = require("orbs-client-sdk");
 
 async function deploy(owner, code) {
     const contractName = `T${new Date().getTime()}`;
@@ -32,9 +32,9 @@ async function buyTicket(contractName, employee, ownerId, secret) {
     return result.outputArguments[0].value
 }
 
-async function checkIn(contractName, employee, ownerId, secret, ticketId) {
+async function checkIn(contractName, employee, ownerId, secret, ticketId, confirmation) {
     const client = new Orbs.Client("http://localhost:8080", 42, Orbs.NetworkType.NETWORK_TYPE_TEST_NET);
-    const [ tx, txid ] = client.createTransaction(employee.publicKey, employee.privateKey, contractName, "checkIn", [Orbs.argBytes(ownerId), Orbs.argBytes(secret), Orbs.argUint32(ticketId)]);
+    const [ tx, txid ] = client.createTransaction(employee.publicKey, employee.privateKey, contractName, "checkIn", [Orbs.argBytes(ownerId), Orbs.argBytes(secret), Orbs.argUint32(ticketId), Orbs.argString(confirmation)]);
 
     const result = await client.sendTransaction(tx);
 
@@ -43,6 +43,17 @@ async function checkIn(contractName, employee, ownerId, secret, ticketId) {
     return result.outputArguments[0].value
 }
 
+
+function writeDeploymentFiles(contractName, employee) {
+    const dc = "\n" +
+        "const contractName = '" + contractName + "';\n" +
+        "const employeePublicKey = Orbs.addressToBytes(\"" + Orbs.bytesToAddress(employee.publicKey) + "\");\n" +
+        "const employeePrivateKey = Orbs.addressToBytes(\"" + Orbs.bytesToAddress(employee.privateKey) + "\");";
+    require("fs").writeFileSync("./dc.js", dc);
+
+    const gate_sh = `#!/usr/bin/env bash\nnode gate.js ${contractName} ${Orbs.bytesToAddress(employee.publicKey)} ${Orbs.bytesToAddress(employee.privateKey)}`
+    require("fs").writeFileSync("./gate.sh", gate_sh, {mode: "700"});
+}
 
 (async () => {
     const code = require("fs").readFileSync("./contract.go");
@@ -62,6 +73,8 @@ async function checkIn(contractName, employee, ownerId, secret, ticketId) {
     });
     await addEmployee(contractName, owner, employee);
 
+    writeDeploymentFiles(contractName, employee);
+
     var enc = new TextEncoder(); // always utf-8
 
     const ownerId = enc.encode("id, name");
@@ -70,10 +83,10 @@ async function checkIn(contractName, employee, ownerId, secret, ticketId) {
 
     console.log("GOT A TICKET", ticket);
 
-    const status = await checkIn(contractName, employee, ownerId, secret, ticket.ID);
+    const status = await checkIn(contractName, employee, ownerId, secret, ticket.ID, "CONFIRMED");
 
     console.log(status);
 
-    const error = await checkIn(contractName, employee, ownerId, secret, ticket.ID);
+    const error = await checkIn(contractName, employee, ownerId, secret, ticket.ID, "CONFIRMED");
     console.log(error);
 })();
