@@ -68,7 +68,7 @@ class App {
             const id = this.secretStore[t.ID].id;
             const name = this.secretStore[t.ID].name;
             const secret = this.secretStore[t.ID].secret;
-            let checkInLink = t.Status == "purchased" ? `<a href='http://localhost:4000/?ticketId=${t.ID}&id=${id}&name=${name}&secret=${secret}' target=_blank>Check in via link</a>` : "";
+            let checkInLink = t.Status == "purchased" ? `<a href='http://localhost:4000/checkin?ticketId=${t.ID}&id=${id}&name=${name}&secret=${secret}' target=_blank>Check in via link</a>` : "";
 
             row.innerHTML = `<div class="column column-20">${t.ID}</div><div class="column column-20"><strong>${t.Status}</strong></div>
             <div class="column column-20">${button}</div>
