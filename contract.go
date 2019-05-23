@@ -12,22 +12,19 @@ import (
 	"strconv"
 )
 
-var PUBLIC = sdk.Export(totalSupply, addEmployee, buyTicket, checkIn, setAuditContract)
+var PUBLIC = sdk.Export(totalSupply, addEmployee, buyTicket, checkIn, setAuditContract, addOwner)
 var SYSTEM = sdk.Export(_init)
 
 type Ticket struct {
 	ID uint32
 	OwnersIDs   [][]byte
+	OwnersOrbsAddresses [][]byte
 	Secret []byte
 	Status    string
 	Timestamp uint64
 	Feedback uint32
 }
 
-//type auditEvent struct {
-//	ID uint32
-//	Status string
-//}
 
 const TOTAL_SUPPLY = 10000
 const MAX_TICKETS_PER_ID = 5
@@ -63,21 +60,22 @@ func log(auditEvent interface{} ) {
 	service.CallMethod(auditContractName, "log", data)
 }
 
-//func addFeedback(ticketID uint32, ownerID []byte )
+//func addFeedback(ticketID uint32, ownerID []byte ) {
+//
+//}
 
-func addOwner(ticketID uint32, newOwnerID []byte) string {
+// note: newOwnerOrbsAddress could be garbage..
+func addOwner(ticketID uint32, newOwnerID []byte, newOwnerOrbsAddress []byte) string {
 	ticketKey := ticketIdKey(ticketID)
 	ticket := getTicket(ticketKey)
-	ticketOwnersIds := ticket.OwnersIDs
+	ownersOrbsAddresses := ticket.OwnersOrbsAddresses
 	authorized := false
-	//// TODO: Could rely on owner signing instead..
-	//if !bytes.Equal(state.ReadBytes([]byte("EMPLOYEE")), address.GetSignerAddress()) {
-	//	panic("not authorized!")
-	//}
 
-	for i := range ticketOwnersIds {
-		ownerID := ticketOwnersIds[i]
-		if bytes.Equal(ownerID, ownerID) {
+	callerAddress := address.GetSignerAddress()
+
+	for i := range ownersOrbsAddresses {
+		ownerOrbsAddress := ownersOrbsAddresses[i]
+		if bytes.Equal(callerAddress, ownerOrbsAddress) {
 			authorized = true
 			break
 		}
@@ -87,25 +85,9 @@ func addOwner(ticketID uint32, newOwnerID []byte) string {
 	}
 
 	ticket.OwnersIDs = append(ticket.OwnersIDs, newOwnerID)
+	ticket.OwnersOrbsAddresses = append(ticket.OwnersOrbsAddresses, newOwnerOrbsAddress)
+
 	saveTicket(ticketKey, ticket)
-	//incrementUserCounter(ownerId)
-
-	//if !bytes.Equal(ownerId, ticket.OwnerId) {
-	//	// log invalid access to ticket
-	//	panic("invalid owner!")
-	//}
-	//
-	//decreaseTotalSupplyBy(1)
-	//
-	//ticket := Ticket{
-	//	ID: ticketId,
-	//	OwnerId: ownerId,
-	//	Secret: secret,
-	//	Status:  "purchased",
-	//}
-	//saveTicket(ticketIdKey(ticketId), ticket)
-	//incrementUserCounter(ownerId)
-
 	data, _ := json.Marshal(ticket)
 	return string(data)
 }
@@ -147,6 +129,24 @@ func getTicket(id string) Ticket {
 	}
 }
 
+
+func checkOwnership(ticketID uint32, ownerID []byte) bool{
+	ticketKey := ticketIdKey(ticketID)
+	ticket := getTicket(ticketKey)
+	ownersIDs := ticket.OwnersIDs
+	authorized := false
+
+	for i := range ownersIDs {
+		listedOwnerID := ownersIDs[i]
+		if bytes.Equal(ownerID, listedOwnerID) {
+			authorized = true
+			break
+		}
+	}
+	return authorized
+}
+
+
 func checkIn(ownerId []byte, secret []byte, id uint32, confirmation string) string {
 	key := ticketIdKey(id)
 	ticket := getTicket(key)
@@ -159,8 +159,7 @@ func checkIn(ownerId []byte, secret []byte, id uint32, confirmation string) stri
 		panic("not authorized!")
 	}
 
-	if !bytes.Equal(ownerId, ticket.OwnerId) {
-		// log invalid access to ticket
+	if !checkOwnership(id, ownerId) {
 		panic("invalid owner!")
 	}
 
@@ -182,7 +181,7 @@ func checkIn(ownerId []byte, secret []byte, id uint32, confirmation string) stri
 	return string(data)
 }
 
-func buyTicket(ownerId []byte, secret []byte) string {
+func buyTicket(ownerId []byte, hashedSecret []byte, ) string {
 	if !bytes.Equal(state.ReadBytes([]byte("EMPLOYEE")), address.GetSignerAddress()) {
 		panic("not authorized!")
 	}
@@ -197,10 +196,11 @@ func buyTicket(ownerId []byte, secret []byte) string {
 	decreaseTotalSupplyBy(1)
 
 	ticket := Ticket{
-		ID: ticketId,
-		OwnersIDs: [ownerId],
-		Secret: secret,
-		Status:  "purchased",
+		ID:                 ticketId,
+		OwnersIDs:          [ownerId],
+		OwnersOrbsAdresses: [],
+		Secret:             hashedSecret,
+		Status:             "purchased",
 	}
 	saveTicket(ticketIdKey(ticketId), ticket)
 	incrementUserCounter(ownerId)
