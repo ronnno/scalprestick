@@ -167,7 +167,12 @@ func checkIn(ownerId []byte, secret []byte, id uint32, confirmation string) stri
 	ticket := getTicket(key)
 
 	if !("CONFIRMED" == confirmation) {
-		panic(fmt.Sprintf("not confirmed: %s", confirmation))
+		logEvent := LoggingEvent{
+			OwnerId:   ownerId,
+			EventType: fmt.Sprintf("not confirmed: %s", confirmation),
+		}
+		log(logEvent)
+		return fmt.Sprintf("not confirmed: %s", confirmation)
 	}
 
 	if !bytes.Equal(state.ReadBytes([]byte("EMPLOYEE")), address.GetSignerAddress()) {
@@ -191,6 +196,12 @@ func checkIn(ownerId []byte, secret []byte, id uint32, confirmation string) stri
 	ticket.Status = "checked in"
 
 	saveTicket(key, ticket)
+
+	logEvent := LoggingEvent{
+		OwnerId:   ownerId,
+		EventType: "check in",
+	}
+	log(logEvent)
 
 	data, _ := json.Marshal(ticket)
 	return string(data)
